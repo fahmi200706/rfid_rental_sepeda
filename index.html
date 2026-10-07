@@ -67,7 +67,20 @@
     .rental-table tbody tr:last-child td { border-bottom: 0; }
     .rental-table td { color: var(--text); }
     .rental-empty { padding: 28px; color: var(--muted); text-align: center; }
-    @media (max-width: 820px) { .rfid-panel { grid-template-columns: 1fr; padding: 30px; } }
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; margin: 12px 0; padding: 6px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+    .status-available { color: #087443; background: #dff8e9; }
+    .status-rented { color: #a52222; background: #ffe3e3; }
+    .status-maintenance { color: #8a5a00; background: #fff1c7; }
+    .card:disabled { opacity: .62; cursor: not-allowed; transform: none; }
+    .form-card, .summary-card, .active-card { margin-top: 28px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
+    .form-grid, .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .form-card label { display: grid; gap: 8px; color: var(--muted); font-size: 13px; font-weight: 700; }
+    .form-card input { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+    .summary-grid { margin: 18px 0; }
+    .summary-grid div { padding: 12px; background: var(--surface-soft); border-radius: 10px; color: var(--muted); }
+    .summary-grid strong { display: block; color: var(--text); margin-top: 4px; }
+    .countdown { font-size: 38px; font-weight: 800; color: var(--brand); margin: 12px 0; }
+    @media (max-width: 820px) { .rfid-panel { grid-template-columns: 1fr; padding: 30px; } .form-grid, .summary-grid { grid-template-columns: 1fr; } }
     .topbar { font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 86%, transparent); }
     .topbar .container, .nav .container { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
     .topbar .container { height: 34px; }
@@ -146,18 +159,23 @@
   <script type="text/babel">
     const { useEffect, useMemo, useState } = React;
 
-    const bikes = [
-      { id: 'city', nama: 'VoltCity Lite', durasi: '30 menit', harga: 4000, cocok: 'Ringan untuk perjalanan pendek di area kampus.' },
-      { id: 'commuter', nama: 'VoltRunner Pro', durasi: '1 jam', harga: 7000, cocok: 'Nyaman untuk rute harian dan jarak sedang.' },
-      { id: 'premium', nama: 'VoltCruiser X', durasi: '2 jam', harga: 12000, cocok: 'Baterai besar untuk perjalanan lebih lama.' },
+    const initialBikes = [
+      { id: 'city', kode: 'EB-001', nama: 'VoltCity Lite', durasi: '30 menit', menit: 30, harga: 4000, status: 'available', cocok: 'Ringan untuk perjalanan pendek di area kampus.' },
+      { id: 'commuter', kode: 'EB-002', nama: 'VoltRunner Pro', durasi: '1 jam', menit: 60, harga: 7000, status: 'available', cocok: 'Nyaman untuk rute harian dan jarak sedang.' },
+      { id: 'premium', kode: 'EB-003', nama: 'VoltCruiser X', durasi: '2 jam', menit: 120, harga: 12000, status: 'available', cocok: 'Baterai besar untuk perjalanan lebih lama.' },
     ];
+    const statusInfo = { available: ['🟢', 'TERSEDIA', 'status-available'], rented: ['🔴', 'SEDANG DISEWA', 'status-rented'], maintenance: ['🟡', 'MAINTENANCE', 'status-maintenance'] };
 
     function App() {
-      const [selected, setSelected] = useState(bikes[0]);
+      const [bikes, setBikes] = useState(initialBikes);
+      const [selected, setSelected] = useState(initialBikes[0]);
+      const [renter, setRenter] = useState({ nama: '', telepon: '' });
+      const [stage, setStage] = useState('renter');
       const [rfidOpen, setRfidOpen] = useState(false);
       const [rfidCode, setRfidCode] = useState('');
-      const [rfidStatus, setRfidStatus] = useState('Tempelkan kartu atau masukkan kode RFID.');
-      const [rentals, setRentals] = useState([]);
+      const [rfidStatus, setRfidStatus] = useState('🔒 MENUNGGU RFID — Tempelkan kartu untuk memulai peminjaman.');
+      const [rentals, setRentals] = useState(() => { try { return JSON.parse(localStorage.getItem('voltride-rentals')) || []; } catch { return []; } });
+      const [now, setNow] = useState(Date.now());
       const [dark, setDark] = useState(() => {
         try {
           const saved = localStorage.getItem('voltride-theme');
@@ -165,6 +183,8 @@
         } catch { return false; }
       });
 
+      useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
+      useEffect(() => { try { localStorage.setItem('voltride-rentals', JSON.stringify(rentals)); localStorage.setItem('voltride-bikes', JSON.stringify(bikes)); } catch {} }, [rentals, bikes]);
       useEffect(() => {
         document.documentElement.classList.toggle('dark', dark);
         try { localStorage.setItem('voltride-theme', dark ? 'dark' : 'light'); } catch {}
@@ -173,13 +193,24 @@
       const totalText = useMemo(() => `Rp ${selected.harga.toLocaleString('id-ID')} / ${selected.durasi}`, [selected]);
       const submitRfid = () => {
         const code = rfidCode.trim().toUpperCase();
-        if (!code) return setRfidStatus('Kode RFID belum diisi.');
+        if (!code) return setRfidStatus('❌ RFID TIDAK DIKENALI — Kode belum diisi.');
         if (code === 'RF-9821' || code === 'RF-3310') {
-          setRfidStatus(`RFID valid. ${selected.nama} siap dipinjam.`);
-          setRentals(prev => [{ id: Date.now(), nama: code === 'RF-9821' ? 'Ahmad Rizky' : 'Siti Nurhaliza', durasi: selected.durasi, harga: selected.harga }, ...prev]);
-          setTimeout(() => setRfidOpen(false), 700);
-        } else setRfidStatus('Kartu RFID tidak terdaftar. Coba RF-9821.');
+          const startedAt = Date.now();
+          const rental = { id: `RENT-${startedAt}`, userId: `USR-${startedAt}`, nama: renter.nama, telepon: renter.telepon, bikeId: selected.id, bikeCode: selected.kode, bikeName: selected.nama, durasi: selected.durasi, harga: selected.harga, startedAt, endsAt: startedAt + selected.menit * 60000, status: 'active' };
+          setRfidStatus(`✅ RFID TERVERIFIKASI — ${selected.kode} valid. 🔓 Membuka kunci...`);
+          setRentals(prev => [rental, ...prev]);
+          setBikes(prev => prev.map(bike => bike.id === selected.id ? { ...bike, status: 'rented' } : bike));
+          setRfidOpen(false); setStage('active');
+        } else setRfidStatus('❌ RFID TIDAK DIKENALI — Kartu tidak terdaftar.');
       };
+      const returnBike = rental => {
+        setRentals(prev => prev.map(item => item.id === rental.id ? { ...item, status: 'completed', returnedAt: Date.now() } : item));
+        setBikes(prev => prev.map(bike => bike.id === rental.bikeId ? { ...bike, status: 'available' } : bike));
+        setStage('returned');
+      };
+      const activeRental = rentals.find(rental => rental.status === 'active');
+      const remaining = activeRental ? Math.max(0, activeRental.endsAt - now) : 0;
+      const formatTime = value => `${String(Math.floor(value / 60000)).padStart(2, '0')}:${String(Math.floor(value % 60000 / 1000)).padStart(2, '0')}`;
 
       return (
         <>
@@ -240,7 +271,7 @@
             <p className="section-copy">Pilih unit sesuai kebutuhan perjalanan.</p>
             <div className="cards">
               {bikes.map(bike => (
-                <button key={bike.id} className={`card ${selected.id === bike.id ? 'active' : ''}`} onClick={() => setSelected(bike)}>
+                <button key={bike.id} disabled={bike.status !== 'available'} className={`card ${selected.id === bike.id ? 'active' : ''}`} onClick={() => setSelected(bike)}>
                   <div className="icon">
                     <svg className="bike-icon" viewBox="0 0 24 24" aria-hidden="true">
                       <circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/>
@@ -248,8 +279,10 @@
                       <path d="M12 6h2.5M14.5 6l1.5 2"/>
                     </svg>
                   </div>
+                  <div className={`status-badge ${statusInfo[bike.status][2]}`}>{statusInfo[bike.status][0]} {statusInfo[bike.status][1]}</div>
                   <p>{bike.cocok}</p>
                   <div className="meta">
+                    <div className="meta-row"><span>ID Unit</span><strong>{bike.kode}</strong></div>
                     <div className="meta-row"><span>Nama</span><strong>{bike.nama}</strong></div>
                     <div className="meta-row"><span>Durasi</span><strong>{bike.durasi}</strong></div>
                     <div className="meta-row"><span>Harga</span><strong>Rp {bike.harga.toLocaleString('id-ID')}</strong></div>
@@ -269,13 +302,27 @@
             </div>
           </div>
 
+          <section className="container">
+            <div className="form-card">
+              <h2 className="section-title">Data Penyewa</h2>
+              <div className="form-grid">
+                <label>Nama<input value={renter.nama} onChange={e => setRenter({...renter, nama: e.target.value})} placeholder="Nama lengkap" /></label>
+                <label>No. HP<input value={renter.telepon} onChange={e => setRenter({...renter, telepon: e.target.value})} placeholder="08xxxxxxxxxx" inputMode="tel" /></label>
+              </div>
+              <button className="btn btn-primary" style={{marginTop: 18}} onClick={() => renter.nama.trim() && /^08\d{8,13}$/.test(renter.telepon.trim()) ? setStage('confirm') : alert('Isi nama dan nomor HP yang valid.')}>Lanjutkan</button>
+            </div>
+            {stage === 'confirm' && <div className="summary-card"><h2 className="section-title">Konfirmasi Peminjaman</h2><div className="summary-grid"><div>Penyewa<strong>{renter.nama}</strong></div><div>Sepeda<strong>{selected.nama} ({selected.kode})</strong></div><div>Durasi<strong>{selected.durasi}</strong></div><div>Harga<strong>Rp {selected.harga.toLocaleString('id-ID')}</strong></div></div><button className="btn btn-soft" onClick={() => { setRfidStatus('🔒 MENUNGGU RFID — Tempelkan kartu untuk memulai peminjaman.'); setRfidOpen(true); }}>Lanjutkan ke RFID</button></div>}
+            {activeRental && <div className="active-card"><h2 className="section-title">Peminjaman Aktif</h2><p>{activeRental.nama} · {activeRental.bikeName} ({activeRental.bikeCode})</p><div className="countdown">{formatTime(remaining)}</div><p>Mulai: {new Date(activeRental.startedAt).toLocaleTimeString('id-ID')} · Selesai: {new Date(activeRental.endsAt).toLocaleTimeString('id-ID')}</p><span className="status-badge status-rented">🔴 SEDANG DISEWA</span><br /><button className="btn btn-primary" onClick={() => returnBike(activeRental)}>Kembalikan Sepeda</button></div>}
+            {stage === 'returned' && <div className="selected-box">✅ PEMINJAMAN SELESAI — Sepeda kembali berstatus 🟢 TERSEDIA.</div>}
+          </section>
+
           <section id="penyewaan" className="container">
             <h2 className="section-title">Data Penyewaan</h2>
             <p className="section-copy">Riwayat penyewaan akan muncul otomatis setelah RFID berhasil diverifikasi.</p>
             <div className="rental-table-wrap">
               {rentals.length === 0 ? <div className="rental-empty">Belum ada data penyewaan. Silakan tap RFID untuk memulai.</div> : (
-                <table className="rental-table"><thead><tr><th>Nama</th><th>Jenis Sepeda</th><th>Durasi</th><th>Harga</th></tr></thead><tbody>
-                  {rentals.map(rental => <tr key={rental.id}><td><strong>{rental.nama}</strong></td><td>{rental.durasi}</td><td><strong>Rp {rental.harga.toLocaleString('id-ID')}</strong></td></tr>)}
+                <table className="rental-table"><thead><tr><th>ID</th><th>Penyewa</th><th>Sepeda</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Mulai</th><th>Selesai</th></tr></thead><tbody>
+                  {rentals.map(rental => <tr key={rental.id}><td>{rental.id}</td><td><strong>{rental.nama}</strong></td><td>{rental.bikeCode}</td><td>{rental.durasi}</td><td><strong>Rp {rental.harga.toLocaleString('id-ID')}</strong></td><td>{rental.status === 'active' ? '🟢 Aktif' : 'Selesai'}</td><td>{new Date(rental.startedAt).toLocaleTimeString('id-ID')}</td><td>{new Date(rental.endsAt).toLocaleTimeString('id-ID')}</td></tr>)}
                 </tbody></table>
               )}
             </div>

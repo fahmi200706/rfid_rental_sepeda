@@ -9,6 +9,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.4/babel.min.js"></script>
   <style>
     :root {
@@ -176,6 +179,7 @@
       const [rfidCode, setRfidCode] = useState('');
       const [rfidStatus, setRfidStatus] = useState('🔒 MENUNGGU RFID — Tempelkan kartu untuk memulai peminjaman.');
       const [rentals, setRentals] = useState(() => { try { return JSON.parse(localStorage.getItem('voltride-rentals')) || []; } catch { return []; } });
+      const [firebaseReady, setFirebaseReady] = useState(false);
       const [now, setNow] = useState(Date.now());
       const [dark, setDark] = useState(() => {
         try {
@@ -185,7 +189,25 @@
       });
 
       useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
-      useEffect(() => { try { localStorage.setItem('voltride-rentals', JSON.stringify(rentals)); localStorage.setItem('voltride-bikes', JSON.stringify(bikes)); } catch {} }, [rentals, bikes]);
+      useEffect(() => {
+        if (!firebaseDb) return;
+        Promise.all([firebaseDb.ref('bikes').once('value'), firebaseDb.ref('rentals').once('value')])
+          .then(([bikesSnapshot, rentalsSnapshot]) => {
+            const remoteBikes = bikesSnapshot.val();
+            const remoteRentals = rentalsSnapshot.val();
+            if (Array.isArray(remoteBikes) && remoteBikes.length) setBikes(remoteBikes);
+            if (Array.isArray(remoteRentals)) setRentals(remoteRentals);
+            setFirebaseReady(true);
+          })
+          .catch(error => console.error('Gagal membaca Firebase:', error));
+      }, []);
+      useEffect(() => {
+        try { localStorage.setItem('voltride-rentals', JSON.stringify(rentals)); localStorage.setItem('voltride-bikes', JSON.stringify(bikes)); } catch {}
+        if (firebaseDb && firebaseReady) {
+          Promise.all([firebaseDb.ref('bikes').set(bikes), firebaseDb.ref('rentals').set(rentals)])
+            .catch(error => console.error('Gagal menyimpan ke Firebase:', error));
+        }
+      }, [rentals, bikes, firebaseReady]);
       useEffect(() => {
         document.documentElement.classList.toggle('dark', dark);
         try { localStorage.setItem('voltride-theme', dark ? 'dark' : 'light'); } catch {}
@@ -217,7 +239,7 @@
         <>
           <nav className="nav">
             <div className="container">
-              <div className="brand"><div className="brand-mark">V</div>Volt<span>Ride</span></div>
+              <div className="brand"><div className="brand-mark">V</div>Volt<span>Ride</span>{firebaseReady && <small style={{fontSize: '10px', color: 'var(--brand)'}}>● ONLINE</small>}</div>
               <div className="links">
                 <a href="#home">Home</a>
                 <a href="#sepeda">Jenis Sepeda</a>

@@ -3,16 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>VoltRide — Peminjaman Sepeda Listrik</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
   <script src="firebase-config.js"></script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.4/babel.min.js"></script>
+
   <style>
     :root {
       color-scheme: light;
@@ -26,6 +39,7 @@
       --line: #e4ece8;
       --shadow: 0 18px 45px rgba(13, 42, 69, .10);
     }
+
     :root.dark {
       color-scheme: dark;
       --bg: #0b1216;
@@ -38,8 +52,15 @@
       --line: #24343a;
       --shadow: 0 18px 45px rgba(0, 0, 0, .35);
     }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       margin: 0;
       font-family: Inter, system-ui, sans-serif;
@@ -47,345 +68,2606 @@
       color: var(--text);
       transition: background .25s ease, color .25s ease;
     }
-    button, input, select { font: inherit; }
-    button { cursor: pointer; }
-    .container { width: min(1440px, calc(100% - 64px)); margin: auto; }
-    .full-section { width: 100%; }
-    .rfid-panel { background: linear-gradient(135deg, var(--brand-dark), #167d83); color: white; padding: 54px; border-radius: 24px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 32px; box-shadow: var(--shadow); }
-    .rfid-panel h2 { margin: 0 0 10px; font-size: 30px; }
-    .rfid-panel p { margin: 0; color: rgba(255,255,255,.76); line-height: 1.7; max-width: 650px; }
-    .rfid-action { min-width: 220px; padding: 16px 24px; border: 0; border-radius: 8px; background: var(--brand); color: #06352b; font-weight: 800; }
-    .rfid-modal { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: rgba(4,15,20,.68); backdrop-filter: blur(8px); }
-    .rfid-box { width: min(460px, 100%); background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 24px; padding: 30px; box-shadow: var(--shadow); }
-    .rfid-box h3 { margin: 0 0 8px; font-size: 24px; }
-    .rfid-box p { color: var(--muted); line-height: 1.6; }
-    .rfid-input { width: 100%; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); outline: none; margin: 12px 0; }
-    .rfid-status { margin: 14px 0 0; color: var(--brand-dark); font-weight: 700; }
-    .dark .rfid-status { color: var(--brand); }
-    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
-    .rental-table-wrap { overflow-x: auto; margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
-    .rental-table { width: 100%; border-collapse: collapse; min-width: 680px; }
-    .rental-table th, .rental-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--line); font-size: 13px; }
-    .rental-table th { color: var(--muted); background: var(--surface-soft); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
-    .rental-table tbody tr:last-child td { border-bottom: 0; }
-    .rental-table td { color: var(--text); }
-    .rental-empty { padding: 28px; color: var(--muted); text-align: center; }
-    .status-badge { display: inline-flex; align-items: center; gap: 6px; margin: 12px 0; padding: 6px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; }
-    .status-available { color: #087443; background: #dff8e9; }
-    .status-rented { color: #a52222; background: #ffe3e3; }
-    .status-maintenance { color: #8a5a00; background: #fff1c7; }
-    .card:disabled { opacity: .62; cursor: not-allowed; transform: none; }
-    .form-card, .summary-card, .active-card { margin-top: 28px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
-    .form-grid, .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .form-card label { display: grid; gap: 8px; color: var(--muted); font-size: 13px; font-weight: 700; }
-    .form-card input { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
-    .summary-grid { margin: 18px 0; }
-    .summary-grid div { padding: 12px; background: var(--surface-soft); border-radius: 10px; color: var(--muted); }
-    .summary-grid strong { display: block; color: var(--text); margin-top: 4px; }
-    .countdown { font-size: 38px; font-weight: 800; color: var(--brand); margin: 12px 0; }
-    @media (max-width: 820px) { .rfid-panel { grid-template-columns: 1fr; padding: 30px; } .form-grid, .summary-grid { grid-template-columns: 1fr; } }
-    .topbar { font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 86%, transparent); }
-    .topbar .container, .nav .container { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-    .topbar .container { height: 34px; }
-    .nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(16px); background: color-mix(in srgb, var(--surface) 84%, transparent); border-bottom: 1px solid var(--line); }
-    .nav .container { height: 72px; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 26px; color: var(--brand-dark); }
-    .dark .brand { color: var(--text); }
-    .brand-mark { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--brand-dark), var(--brand)); color: white; display: grid; place-items: center; font-size: 16px; }
-    .brand span { color: var(--brand); }
-    .links { display: flex; align-items: center; gap: 22px; font-size: 13px; font-weight: 700; }
-    .links a { color: var(--text); text-decoration: none; opacity: .82; }
-    .links a:hover { color: var(--brand); }
-    .theme-btn { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); color: var(--text); background: var(--surface); box-shadow: 0 8px 20px rgba(0,0,0,.05); display: grid; place-items: center; }
-    .theme-icon { width: 18px; height: 18px; display: block; }
-    .hero { min-height: 430px; display: grid; place-items: center; text-align: center; position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
-    .hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(255,255,255,.74), rgba(255,255,255,.82)), url('template bagus.png') center/cover no-repeat; opacity: .46; }
-    .dark .hero::before { background: linear-gradient(rgba(11,18,22,.82), rgba(11,18,22,.9)), url('template bagus.png') center/cover no-repeat; opacity: .55; }
-    .hero::after { content: ""; position: absolute; inset: auto 0 0; height: 180px; background: linear-gradient(transparent, var(--bg)); }
-    .hero-content { position: relative; z-index: 1; padding: 70px 0 90px; }
-    .eyebrow { color: var(--brand); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; font-size: 12px; }
-    h1 { margin: 12px auto 16px; max-width: 760px; font-size: clamp(38px, 6vw, 72px); line-height: 1.02; letter-spacing: -.05em; color: var(--brand-dark); }
-    .dark h1 { color: var(--text); }
-    h1 span { color: var(--brand); text-decoration: underline; text-underline-offset: 8px; }
-    .hero p { max-width: 620px; margin: 0 auto 28px; color: var(--muted); font-size: 16px; line-height: 1.7; }
-    .actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
-    .btn { border: 0; border-radius: 4px; padding: 13px 22px; font-size: 13px; font-weight: 800; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
-    .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-    .btn-primary { background: var(--brand-dark); color: white; }
-    .btn-soft { background: var(--brand); color: #06352b; }
-    section { padding: 72px 0; }
-    .section-title { font-size: 28px; margin: 0; color: var(--brand-dark); letter-spacing: -.03em; }
-    .dark .section-title { color: var(--text); }
-    .section-title::after { content: ""; display: block; width: 42px; height: 3px; margin-top: 12px; background: var(--brand); border-radius: 999px; }
-    .section-copy { color: var(--muted); line-height: 1.8; max-width: 820px; font-size: 14px; }
-    .intro { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; align-items: center; }
-    .bike-preview { min-height: 320px; border-radius: 28px; background: radial-gradient(circle at 40% 20%, rgba(57,216,182,.28), transparent 36%), var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; border: 1px solid var(--line); }
-    .bike-emoji { filter: drop-shadow(0 22px 18px rgba(0,0,0,.14)); animation: float 3s ease-in-out infinite; }
-    @keyframes float { 50% { transform: translateY(-10px); } }
-    .selected-box { margin-top: 18px; padding: 16px; border-left: 4px solid var(--brand); background: var(--surface-soft); border-radius: 14px; }
-    .selected-box b { display: block; color: var(--brand-dark); margin-bottom: 4px; }
-    .dark .selected-box b { color: var(--brand); }
-    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 34px; }
-    .card { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); padding: 28px; border-radius: 4px; transition: transform .22s ease, border .22s ease; }
-    .card:hover, .card.active { transform: translateY(-5px); border-color: color-mix(in srgb, var(--brand) 70%, var(--line)); }
-    .icon { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 14px; color: var(--brand-dark); background: var(--surface-soft); margin-bottom: 18px; }
-    .bike-icon { width: 30px; height: 30px; display: block; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-    .card h3 { margin: 0 0 8px; color: var(--text); }
-    .card p { margin: 0; color: var(--muted); line-height: 1.7; font-size: 13px; }
-    .meta { display: grid; gap: 10px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
-    .meta-row { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 13px; }
-    .meta-row strong { color: var(--text); text-align: right; }
-    .portfolio-grid { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 34px; }
-    .portfolio-item { min-height: 190px; padding: 26px; display: flex; align-items: end; color: white; font-weight: 800; background: linear-gradient(135deg, rgba(13,42,102,.84), rgba(57,216,182,.72)); }
-    .portfolio-item:nth-child(2n) { background: linear-gradient(135deg, rgba(57,216,182,.78), rgba(13,42,102,.72)); }
-    .price-band { background: var(--brand-dark); color: white; padding: 48px 0; }
-    .price-band .container { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
-    .price-band h2 { margin: 0 0 10px; }
-    .price-band p { margin: 0; color: rgba(255,255,255,.72); max-width: 720px; }
-    .price-band .btn { border: 1px solid rgba(255,255,255,.55); background: transparent; color: white; }
-    .contact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 32px; }
-    .contact-card { text-align: center; padding: 30px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
-    .footer { padding: 28px 0; text-align: center; color: var(--muted); background: var(--surface); border-top: 1px solid var(--line); font-size: 13px; }
-    @media (max-width: 820px) {
-      .links { display: none; }
-      .intro, .cards, .contact-grid { grid-template-columns: 1fr; }
-      .portfolio-grid { grid-template-columns: 1fr 1fr; }
-      .price-band .container { align-items: flex-start; flex-direction: column; }
+
+    button,
+    input,
+    select {
+      font: inherit;
     }
+
+    button {
+      cursor: pointer;
+    }
+
+    .container {
+      width: min(1440px, calc(100% - 64px));
+      margin: auto;
+    }
+
+    .full-section {
+      width: 100%;
+    }
+
+    /* ================================
+       RFID
+    ================================= */
+
+    .rfid-panel {
+      background: linear-gradient(135deg, var(--brand-dark), #167d83);
+      color: white;
+      padding: 54px;
+      border-radius: 24px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 32px;
+      box-shadow: var(--shadow);
+    }
+
+    .rfid-panel h2 {
+      margin: 0 0 10px;
+      font-size: 30px;
+    }
+
+    .rfid-panel p {
+      margin: 0;
+      color: rgba(255,255,255,.76);
+      line-height: 1.7;
+      max-width: 650px;
+    }
+
+    .rfid-action {
+      min-width: 220px;
+      padding: 16px 24px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--brand);
+      color: #06352b;
+      font-weight: 800;
+    }
+
+    .rfid-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(4,15,20,.68);
+      backdrop-filter: blur(8px);
+    }
+
+    .rfid-box {
+      width: min(460px, 100%);
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: var(--shadow);
+    }
+
+    .rfid-box h3 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+
+    .rfid-box p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .rfid-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      margin: 12px 0;
+    }
+
+    .rfid-status {
+      margin: 14px 0 0;
+      color: var(--brand-dark);
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .dark .rfid-status {
+      color: var(--brand);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    /* ================================
+       TABLE
+    ================================= */
+
+    .rental-table-wrap {
+      overflow-x: auto;
+      margin-top: 28px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .rental-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 680px;
+    }
+
+    .rental-table th,
+    .rental-table td {
+      padding: 16px 20px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .rental-table th {
+      color: var(--muted);
+      background: var(--surface-soft);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .rental-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .rental-table td {
+      color: var(--text);
+    }
+
+    .rental-empty {
+      padding: 28px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ================================
+       STATUS
+    ================================= */
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 12px 0;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .status-available {
+      color: #087443;
+      background: #dff8e9;
+    }
+
+    .status-rented {
+      color: #a52222;
+      background: #ffe3e3;
+    }
+
+    .status-maintenance {
+      color: #8a5a00;
+      background: #fff1c7;
+    }
+
+    .card:disabled {
+      opacity: .62;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ================================
+       FORM
+    ================================= */
+
+    .form-card,
+    .summary-card,
+    .active-card {
+      margin-top: 28px;
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .form-grid,
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .form-card label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .form-card input {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .summary-grid {
+      margin: 18px 0;
+    }
+
+    .summary-grid div {
+      padding: 12px;
+      background: var(--surface-soft);
+      border-radius: 10px;
+      color: var(--muted);
+    }
+
+    .summary-grid strong {
+      display: block;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    .countdown {
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--brand);
+      margin: 12px 0;
+    }
+
+    /* ================================
+       TOPBAR
+    ================================= */
+
+    .topbar {
+      font-size: 12px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 86%, transparent);
+    }
+
+    .topbar .container,
+    .nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .topbar .container {
+      height: 34px;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(16px);
+      background: color-mix(in srgb, var(--surface) 84%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav .container {
+      height: 72px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 26px;
+      color: var(--brand-dark);
+    }
+
+    .dark .brand {
+      color: var(--text);
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+    }
+
+    .brand span {
+      color: var(--brand);
+    }
+
+    .links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .links a {
+      color: var(--text);
+      text-decoration: none;
+      opacity: .82;
+    }
+
+    .links a:hover {
+      color: var(--brand);
+    }
+
+    .theme-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: var(--surface);
+      box-shadow: 0 8px 20px rgba(0,0,0,.05);
+      display: grid;
+      place-items: center;
+    }
+
+    .theme-icon {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    /* ================================
+       HERO
+    ================================= */
+
+    .hero {
+      min-height: 430px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(rgba(255,255,255,.74), rgba(255,255,255,.82)),
+        url('template bagus.png') center/cover no-repeat;
+      opacity: .46;
+    }
+
+    .dark .hero::before {
+      background:
+        linear-gradient(rgba(11,18,22,.82), rgba(11,18,22,.9)),
+        url('template bagus.png') center/cover no-repeat;
+      opacity: .55;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 180px;
+      background: linear-gradient(transparent, var(--bg));
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      padding: 70px 0 90px;
+    }
+
+    .eyebrow {
+      color: var(--brand);
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    h1 {
+      margin: 12px auto 16px;
+      max-width: 760px;
+      font-size: clamp(38px, 6vw, 72px);
+      line-height: 1.02;
+      letter-spacing: -.05em;
+      color: var(--brand-dark);
+    }
+
+    .dark h1 {
+      color: var(--text);
+    }
+
+    h1 span {
+      color: var(--brand);
+      text-decoration: underline;
+      text-underline-offset: 8px;
+    }
+
+    .hero p {
+      max-width: 620px;
+      margin: 0 auto 28px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 4px;
+      padding: 13px 22px;
+      font-size: 13px;
+      font-weight: 800;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .btn-primary {
+      background: var(--brand-dark);
+      color: white;
+    }
+
+    .btn-soft {
+      background: var(--brand);
+      color: #06352b;
+    }
+
+    /* ================================
+       SECTION
+    ================================= */
+
+    section {
+      padding: 72px 0;
+    }
+
+    .section-title {
+      font-size: 28px;
+      margin: 0;
+      color: var(--brand-dark);
+      letter-spacing: -.03em;
+    }
+
+    .dark .section-title {
+      color: var(--text);
+    }
+
+    .section-title::after {
+      content: "";
+      display: block;
+      width: 42px;
+      height: 3px;
+      margin-top: 12px;
+      background: var(--brand);
+      border-radius: 999px;
+    }
+
+    .section-copy {
+      color: var(--muted);
+      line-height: 1.8;
+      max-width: 820px;
+      font-size: 14px;
+    }
+
+    /* ================================
+       INTRO
+    ================================= */
+
+    .intro {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 70px;
+      align-items: center;
+    }
+
+    .bike-preview {
+      min-height: 320px;
+      border-radius: 28px;
+      background:
+        radial-gradient(
+          circle at 40% 20%,
+          rgba(57,216,182,.28),
+          transparent 36%
+        ),
+        var(--surface);
+      box-shadow: var(--shadow);
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+    }
+
+    .bike-icon {
+      width: 30px;
+      height: 30px;
+      display: block;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .selected-box {
+      margin-top: 18px;
+      padding: 16px;
+      border-left: 4px solid var(--brand);
+      background: var(--surface-soft);
+      border-radius: 14px;
+    }
+
+    .selected-box b {
+      display: block;
+      color: var(--brand-dark);
+      margin-bottom: 4px;
+    }
+
+    .dark .selected-box b {
+      color: var(--brand);
+    }
+
+    /* ================================
+       CARDS
+    ================================= */
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      margin-top: 34px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      border-radius: 4px;
+      transition: transform .22s ease, border .22s ease;
+      text-align: left;
+    }
+
+    .card:hover,
+    .card.active {
+      transform: translateY(-5px);
+      border-color: color-mix(in srgb, var(--brand) 70%, var(--line));
+    }
+
+    .icon {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      color: var(--brand-dark);
+      background: var(--surface-soft);
+      margin-bottom: 18px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      color: var(--text);
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 13px;
+    }
+
+    .meta {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .meta-row strong {
+      color: var(--text);
+      text-align: right;
+    }
+
+    /* ================================
+       PRICE
+    ================================= */
+
+    .price-band {
+      background: var(--brand-dark);
+      color: white;
+      padding: 48px 0;
+    }
+
+    .price-band .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .price-band h2 {
+      margin: 0 0 10px;
+    }
+
+    .price-band p {
+      margin: 0;
+      color: rgba(255,255,255,.72);
+      max-width: 720px;
+    }
+
+    .price-band .btn {
+      border: 1px solid rgba(255,255,255,.55);
+      background: transparent;
+      color: white;
+    }
+
+    /* ================================
+       CONTACT
+    ================================= */
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 32px;
+    }
+
+    .contact-card {
+      text-align: center;
+      padding: 30px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    /* ================================
+       FOOTER
+    ================================= */
+
+    .footer {
+      padding: 28px 0;
+      text-align: center;
+      color: var(--muted);
+      background: var(--surface);
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    /* ================================
+       RESPONSIVE
+    ================================= */
+
+    @media (max-width: 820px) {
+
+      .container {
+        width: min(100% - 32px, 1440px);
+      }
+
+      .links {
+        display: none;
+      }
+
+      .intro,
+      .cards,
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .portfolio-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .price-band .container {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .rfid-panel {
+        grid-template-columns: 1fr;
+        padding: 30px;
+      }
+
+      .form-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
     }
   </style>
 </head>
+
 <body>
-  <div id="root"></div>
 
-  <script type="text/babel">
-    const { useEffect, useMemo, useState } = React;
+<div id="root"></div>
 
-    const initialBikes = [
-      { id: 'city', kode: 'EB-001', nama: 'VoltCity Lite', durasi: '30 menit', menit: 30, harga: 4000, status: 'available', cocok: 'Ringan untuk perjalanan pendek di area kampus.' },
-      { id: 'commuter', kode: 'EB-002', nama: 'VoltRunner Pro', durasi: '1 jam', menit: 60, harga: 7000, status: 'available', cocok: 'Nyaman untuk rute harian dan jarak sedang.' },
-      { id: 'premium', kode: 'EB-003', nama: 'VoltCruiser X', durasi: '2 jam', menit: 120, harga: 12000, status: 'available', cocok: 'Baterai besar untuk perjalanan lebih lama.' },
-    ];
-    const statusInfo = { available: ['🟢', 'TERSEDIA', 'status-available'], rented: ['🔴', 'SEDANG DISEWA', 'status-rented'], maintenance: ['🟡', 'MAINTENANCE', 'status-maintenance'] };
+<script type="text/babel">
 
-    function App() {
-      const [bikes, setBikes] = useState(initialBikes);
-      const [selected, setSelected] = useState(initialBikes[0]);
-      const [renter, setRenter] = useState({ nama: '', telepon: '' });
-      const [stage, setStage] = useState('renter');
-      const [rfidOpen, setRfidOpen] = useState(false);
-      const [rfidCode, setRfidCode] = useState('');
-      const [rfidStatus, setRfidStatus] = useState('🔒 MENUNGGU RFID — Tempelkan kartu untuk memulai peminjaman.');
-      const [rentals, setRentals] = useState(() => { try { return JSON.parse(localStorage.getItem('voltride-rentals')) || []; } catch { return []; } });
-      const [firebaseReady, setFirebaseReady] = useState(false);
-      const [now, setNow] = useState(Date.now());
-      const [dark, setDark] = useState(() => {
-        try {
-          const saved = localStorage.getItem('voltride-theme');
-          return saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-        } catch { return false; }
-      });
+  const {
+    useEffect,
+    useMemo,
+    useState
+  } = React;
 
-      useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
-      useEffect(() => {
-        if (!firebaseDb) return;
-        Promise.all([firebaseDb.ref('bikes').once('value'), firebaseDb.ref('rentals').once('value')])
-          .then(([bikesSnapshot, rentalsSnapshot]) => {
-            const remoteBikes = bikesSnapshot.val();
-            const remoteRentals = rentalsSnapshot.val();
-            if (Array.isArray(remoteBikes) && remoteBikes.length) setBikes(remoteBikes);
-            if (Array.isArray(remoteRentals)) setRentals(remoteRentals);
-            setFirebaseReady(true);
-          })
-          .catch(error => console.error('Gagal membaca Firebase:', error));
-      }, []);
-      useEffect(() => {
-        try { localStorage.setItem('voltride-rentals', JSON.stringify(rentals)); localStorage.setItem('voltride-bikes', JSON.stringify(bikes)); } catch {}
-        if (firebaseDb && firebaseReady) {
-          Promise.all([firebaseDb.ref('bikes').set(bikes), firebaseDb.ref('rentals').set(rentals)])
-            .catch(error => console.error('Gagal menyimpan ke Firebase:', error));
-        }
-      }, [rentals, bikes, firebaseReady]);
-      useEffect(() => {
-        document.documentElement.classList.toggle('dark', dark);
-        try { localStorage.setItem('voltride-theme', dark ? 'dark' : 'light'); } catch {}
-      }, [dark]);
 
-      const totalText = useMemo(() => `Rp ${selected.harga.toLocaleString('id-ID')} / ${selected.durasi}`, [selected]);
-      const submitRfid = () => {
-        const code = rfidCode.trim().toUpperCase();
-        if (!code) return setRfidStatus('❌ RFID TIDAK DIKENALI — Kode belum diisi.');
-        if (code === 'RF-9821' || code === 'RF-3310') {
-          const startedAt = Date.now();
-          const rental = { id: `RENT-${startedAt}`, userId: `USR-${startedAt}`, nama: renter.nama, telepon: renter.telepon, bikeId: selected.id, bikeCode: selected.kode, bikeName: selected.nama, durasi: selected.durasi, harga: selected.harga, startedAt, endsAt: startedAt + selected.menit * 60000, status: 'active' };
-          setRfidStatus(`✅ RFID TERVERIFIKASI — ${selected.kode} valid. 🔓 Membuka kunci...`);
-          setRentals(prev => [rental, ...prev]);
-          setBikes(prev => prev.map(bike => bike.id === selected.id ? { ...bike, status: 'rented' } : bike));
-          setRfidOpen(false); setStage('active');
-        } else setRfidStatus('❌ RFID TIDAK DIKENALI — Kartu tidak terdaftar.');
-      };
-      const returnBike = rental => {
-        setRentals(prev => prev.map(item => item.id === rental.id ? { ...item, status: 'completed', returnedAt: Date.now() } : item));
-        setBikes(prev => prev.map(bike => bike.id === rental.bikeId ? { ...bike, status: 'available' } : bike));
-        setStage('returned');
-      };
-      const activeRental = rentals.find(rental => rental.status === 'active');
-      const remaining = activeRental ? Math.max(0, activeRental.endsAt - now) : 0;
-      const formatTime = value => `${String(Math.floor(value / 60000)).padStart(2, '0')}:${String(Math.floor(value % 60000 / 1000)).padStart(2, '0')}`;
+  // ==========================================
+  // DATA DEFAULT
+  // ==========================================
 
-      return (
-        <>
-          <nav className="nav">
-            <div className="container">
-              <div className="brand"><div className="brand-mark">V</div>Volt<span>Ride</span>{firebaseReady && <small style={{fontSize: '10px', color: 'var(--brand)'}}>● ONLINE</small>}</div>
-              <div className="links">
-                <a href="#home">Home</a>
-                <a href="#sepeda">Jenis Sepeda</a>
-                <a href="#harga">Harga</a>
-                <a href="#penyewaan">Penyewaan</a>
-                <a href="#kontak">Kontak</a>
-                <button className="btn btn-soft" onClick={() => setRfidOpen(true)}>Tap RFID</button>
-                <button className="theme-btn" onClick={() => setDark(v => !v)} title="Ganti mode" aria-label="Ganti mode warna">
-                  {dark ? (
-                    <svg className="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-                  ) : (
-                    <svg className="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.6 6.6 0 0 0 21 12.8z"/></svg>
-                  )}
-                </button>
-              </div>
-            </div>
-          </nav>
+  const initialBikes = [
+    {
+      id: 'EB-001',
+      kode: 'EB-001',
+      nama: 'Sepeda Listrik 001',
+      durasi: '30 menit',
+      menit: 30,
+      harga: 4000,
+      status: 'available',
+      cocok: 'Ringan untuk perjalanan pendek di area kampus.'
+    },
+    {
+      id: 'EB-002',
+      kode: 'EB-002',
+      nama: 'Sepeda Listrik 002',
+      durasi: '1 jam',
+      menit: 60,
+      harga: 7000,
+      status: 'available',
+      cocok: 'Nyaman untuk rute harian dan jarak sedang.'
+    },
+    {
+      id: 'EB-003',
+      kode: 'EB-003',
+      nama: 'Sepeda Listrik 003',
+      durasi: '2 jam',
+      menit: 120,
+      harga: 12000,
+      status: 'available',
+      cocok: 'Baterai besar untuk perjalanan lebih lama.'
+    }
+  ];
 
-          <header id="home" className="hero">
-            <div className="hero-content container">
-              <div className="eyebrow">Peminjaman sepeda listrik RFID</div>
-              <h1>Pilih <span>sepeda</span> sebelum dipinjam</h1>
-              <p>Pilih unit yang sesuai, lalu tempelkan kartu RFID untuk memulai perjalanan.</p>
-              <div className="actions">
-                <a href="#sepeda"><button className="btn btn-primary">Pilih Sepeda</button></a>
-                <a href="#harga"><button className="btn btn-soft">Lihat Harga</button></a>
-              </div>
-            </div>
-          </header>
 
-          <section className="container intro">
-            <div className="bike-preview" aria-label="Sepeda yang akan dipinjam">
-              <svg className="bike-icon" style={{width: '150px', height: '150px', color: 'var(--brand-dark)'}} viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/>
-                <path d="M5.5 17.5 9 9h4l2.5 8.5m-6-8.5L12 6m-3 3 3 4h5.5"/>
-                <path d="M12 6h2.5M14.5 6l1.5 2"/>
-              </svg>
-            </div>
-            <div>
-              <h2 className="section-title">Sepeda yang akan dipinjam</h2>
-              <p className="section-copy">Pilih unit yang ingin digunakan untuk perjalanan.</p>
-              <div className="selected-box">
-                <b>{selected.nama}</b>
-                <div>Durasi: {selected.durasi}</div>
-                <div>Harga: {totalText}</div>
-              </div>
-            </div>
-          </section>
+  const statusInfo = {
 
-          <section id="sepeda" className="container">
-            <h2 className="section-title">Pilih Unit Sepeda</h2>
-            <p className="section-copy">Pilih unit sesuai kebutuhan perjalanan.</p>
-            <div className="cards">
-              {bikes.map(bike => (
-                <button key={bike.id} disabled={bike.status !== 'available'} className={`card ${selected.id === bike.id ? 'active' : ''}`} onClick={() => setSelected(bike)}>
-                  <div className="icon">
-                    <svg className="bike-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/>
-                      <path d="M5.5 17.5 9 9h4l2.5 8.5m-6-8.5L12 6m-3 3 3 4h5.5"/>
-                      <path d="M12 6h2.5M14.5 6l1.5 2"/>
-                    </svg>
-                  </div>
-                  <div className={`status-badge ${statusInfo[bike.status][2]}`}>{statusInfo[bike.status][0]} {statusInfo[bike.status][1]}</div>
-                  <p>{bike.cocok}</p>
-                  <div className="meta">
-                    <div className="meta-row"><span>ID Unit</span><strong>{bike.kode}</strong></div>
-                    <div className="meta-row"><span>Nama</span><strong>{bike.nama}</strong></div>
-                    <div className="meta-row"><span>Durasi</span><strong>{bike.durasi}</strong></div>
-                    <div className="meta-row"><span>Harga</span><strong>Rp {bike.harga.toLocaleString('id-ID')}</strong></div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
+    available: [
+      '🟢',
+      'TERSEDIA',
+      'status-available'
+    ],
 
-          <div id="harga" className="price-band">
-            <div className="container">
-              <div>
-                <h2>Harga aktif: {totalText}</h2>
-                <p>{selected.nama} dipilih sebagai sepeda yang akan dipinjam.</p>
-              </div>
-              <button className="btn" onClick={() => setRfidOpen(true)}>Tap RFID untuk mulai</button>
-            </div>
-          </div>
+    rented: [
+      '🔴',
+      'SEDANG DISEWA',
+      'status-rented'
+    ],
 
-          <section className="container">
-            <div className="form-card">
-              <h2 className="section-title">Data Penyewa</h2>
-              <div className="form-grid">
-                <label>Nama<input value={renter.nama} onChange={e => setRenter({...renter, nama: e.target.value})} placeholder="Nama lengkap" /></label>
-                <label>No. HP<input value={renter.telepon} onChange={e => setRenter({...renter, telepon: e.target.value})} placeholder="08xxxxxxxxxx" inputMode="tel" /></label>
-              </div>
-              <button className="btn btn-primary" style={{marginTop: 18}} onClick={() => renter.nama.trim() && /^08\d{8,13}$/.test(renter.telepon.trim()) ? setStage('confirm') : alert('Isi nama dan nomor HP yang valid.')}>Lanjutkan</button>
-            </div>
-            {stage === 'confirm' && <div className="summary-card"><h2 className="section-title">Konfirmasi Peminjaman</h2><div className="summary-grid"><div>Penyewa<strong>{renter.nama}</strong></div><div>Sepeda<strong>{selected.nama} ({selected.kode})</strong></div><div>Durasi<strong>{selected.durasi}</strong></div><div>Harga<strong>Rp {selected.harga.toLocaleString('id-ID')}</strong></div></div><button className="btn btn-soft" onClick={() => { setRfidStatus('🔒 MENUNGGU RFID — Tempelkan kartu untuk memulai peminjaman.'); setRfidOpen(true); }}>Lanjutkan ke RFID</button></div>}
-            {activeRental && <div className="active-card"><h2 className="section-title">Peminjaman Aktif</h2><p>{activeRental.nama} · {activeRental.bikeName} ({activeRental.bikeCode})</p><div className="countdown">{formatTime(remaining)}</div><p>Mulai: {new Date(activeRental.startedAt).toLocaleTimeString('id-ID')} · Selesai: {new Date(activeRental.endsAt).toLocaleTimeString('id-ID')}</p><span className="status-badge status-rented">🔴 SEDANG DISEWA</span><br /><button className="btn btn-primary" onClick={() => returnBike(activeRental)}>Kembalikan Sepeda</button></div>}
-            {stage === 'returned' && <div className="selected-box">✅ PEMINJAMAN SELESAI — Sepeda kembali berstatus 🟢 TERSEDIA.</div>}
-          </section>
+    maintenance: [
+      '🟡',
+      'MAINTENANCE',
+      'status-maintenance'
+    ]
 
-          <section id="penyewaan" className="container">
-            <h2 className="section-title">Data Penyewaan</h2>
-            <p className="section-copy">Riwayat penyewaan akan muncul otomatis setelah RFID berhasil diverifikasi.</p>
-            <div className="rental-table-wrap">
-              {rentals.length === 0 ? <div className="rental-empty">Belum ada data penyewaan. Silakan tap RFID untuk memulai.</div> : (
-                <table className="rental-table"><thead><tr><th>ID</th><th>Penyewa</th><th>Sepeda</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Mulai</th><th>Selesai</th></tr></thead><tbody>
-                  {rentals.map(rental => <tr key={rental.id}><td>{rental.id}</td><td><strong>{rental.nama}</strong></td><td>{rental.bikeCode}</td><td>{rental.durasi}</td><td><strong>Rp {rental.harga.toLocaleString('id-ID')}</strong></td><td>{rental.status === 'active' ? '🟢 Aktif' : 'Selesai'}</td><td>{new Date(rental.startedAt).toLocaleTimeString('id-ID')}</td><td>{new Date(rental.endsAt).toLocaleTimeString('id-ID')}</td></tr>)}
-                </tbody></table>
-              )}
-            </div>
-          </section>
+  };
 
-          <section className="container" style={{paddingTop: '28px', paddingBottom: '28px'}}>
-            <div className="rfid-panel">
-              <div><h2>Tap RFID untuk membuka kunci</h2><p>Pilih sepeda, lalu tempelkan kartu RFID terdaftar untuk memulai peminjaman.</p></div>
-              <button className="rfid-action" onClick={() => setRfidOpen(true)}>◉ Tap Kartu RFID</button>
-            </div>
-          </section>
 
-          <section id="kontak" className="container">
-            <h2 className="section-title">Contact Us</h2>
-            <p className="section-copy">Informasi lokasi peminjaman dan layanan bantuan.</p>
-            <div className="contact-grid">
-              <div className="contact-card"><b>Alamat</b><br />Stasiun Sepeda Kampus</div>
-              <div className="contact-card"><b>Jam Operasional</b><br />07.00 - 21.00 WIB</div>
-              <div className="contact-card"><b>Email</b><br />contact@voltride.local</div>
-            </div>
-          </section>
+  // ==========================================
+  // FIREBASE DATA
+  // ==========================================
 
-          {rfidOpen && (
-            <div className="rfid-modal" onClick={e => e.target === e.currentTarget && setRfidOpen(false)}>
-              <div className="rfid-box">
-                <h3>Tap Kartu RFID</h3>
-                <p>Sepeda terpilih: <strong>{selected.nama}</strong>. Masukkan kode untuk simulasi tap.</p>
-                <input className="rfid-input" autoFocus value={rfidCode} onChange={e => setRfidCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitRfid()} placeholder="Contoh: RF-9821" />
-                <div className="modal-actions"><button className="btn" onClick={() => setRfidOpen(false)}>Batal</button><button className="btn btn-primary" onClick={submitRfid}>Verifikasi RFID</button></div>
-                <div className="rfid-status">{rfidStatus}</div>
-              </div>
-            </div>
-          )}
+  function convertFirebaseBikes(data) {
 
-          <footer className="footer">© VoltRide — Sistem Peminjaman Sepeda Listrik RFID</footer>
-        </>
-      );
+    if (!data || typeof data !== 'object') {
+      return [];
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script>
+    return Object.entries(data).map(([bikeId, bike]) => {
+
+      let status = 'available';
+
+      if (bike.status === 'DIPAKAI') {
+        status = 'rented';
+      }
+
+      if (bike.status === 'TERSEDIA') {
+        status = 'available';
+      }
+
+      if (
+        bike.status === 'MAINTENANCE' ||
+        bike.status === 'PERBAIKAN'
+      ) {
+        status = 'maintenance';
+      }
+
+      return {
+
+        id: bikeId,
+
+        kode: bikeId,
+
+        nama:
+          bike.nama ||
+          `Sepeda Listrik ${bikeId.replace('EB-', '')}`,
+
+        durasi: '2 jam',
+
+        menit: 120,
+
+        harga: 12000,
+
+        status: status,
+
+        keterangan:
+          bike.keterangan || '',
+
+        cocok:
+          bike.keterangan ||
+          'Sepeda listrik untuk perjalanan di area kampus.'
+
+      };
+
+    });
+
+  }
+
+
+  // ==========================================
+  // APP
+  // ==========================================
+
+  function App() {
+
+    const [bikes, setBikes] =
+      useState(initialBikes);
+
+    const [selected, setSelected] =
+      useState(initialBikes[0]);
+
+    const [renter, setRenter] =
+      useState({
+        nama: '',
+        telepon: ''
+      });
+
+    const [stage, setStage] =
+      useState('renter');
+
+    const [rfidOpen, setRfidOpen] =
+      useState(false);
+
+    const [rfidCode, setRfidCode] =
+      useState('');
+
+    const [rfidStatus, setRfidStatus] =
+      useState(
+        '🔒 MENUNGGU RFID — Tempelkan kartu untuk memulai peminjaman.'
+      );
+
+    const [rentals, setRentals] =
+      useState([]);
+
+    const [firebaseReady, setFirebaseReady] =
+      useState(false);
+
+    const [now, setNow] =
+      useState(Date.now());
+
+    const [dark, setDark] =
+      useState(() => {
+
+        try {
+
+          const saved =
+            localStorage.getItem(
+              'voltride-theme'
+            );
+
+          return saved
+            ? saved === 'dark'
+            : matchMedia(
+                '(prefers-color-scheme: dark)'
+              ).matches;
+
+        } catch {
+
+          return false;
+
+        }
+
+      });
+
+
+    // ==========================================
+    // CLOCK
+    // ==========================================
+
+    useEffect(() => {
+
+      const timer =
+        setInterval(
+          () => setNow(Date.now()),
+          1000
+        );
+
+      return () =>
+        clearInterval(timer);
+
+    }, []);
+
+
+    // ==========================================
+    // LOAD FIREBASE
+    // ==========================================
+
+    useEffect(() => {
+
+      if (!firebaseDb) {
+
+        console.error(
+          'Firebase Database tidak tersedia.'
+        );
+
+        return;
+
+      }
+
+
+      const bikesRef =
+        firebaseDb.ref('bikes');
+
+      const rentalsRef =
+        firebaseDb.ref('rentals');
+
+
+      // ------------------------------------------
+      // Baca bikes
+      // ------------------------------------------
+
+      bikesRef.on(
+        'value',
+        snapshot => {
+
+          const data =
+            snapshot.val();
+
+          const firebaseBikes =
+            convertFirebaseBikes(data);
+
+          if (firebaseBikes.length > 0) {
+
+            setBikes(firebaseBikes);
+
+            setSelected(current => {
+
+              const stillExists =
+                firebaseBikes.find(
+                  bike =>
+                    bike.id === current.id
+                );
+
+              return stillExists ||
+                firebaseBikes[0];
+
+            });
+
+          }
+
+          setFirebaseReady(true);
+
+        },
+        error => {
+
+          console.error(
+            'Gagal membaca bikes:',
+            error
+          );
+
+        }
+      );
+
+
+      // ------------------------------------------
+      // Baca rentals
+      // ------------------------------------------
+
+      rentalsRef.on(
+        'value',
+        snapshot => {
+
+          const data =
+            snapshot.val();
+
+          if (!data) {
+
+            setRentals([]);
+
+            return;
+
+          }
+
+
+          const rentalArray =
+            Object.entries(data)
+              .map(([id, rental]) => ({
+                ...rental,
+                id
+              }))
+              .sort(
+                (a, b) =>
+                  (b.startedAt || 0) -
+                  (a.startedAt || 0)
+              );
+
+
+          setRentals(rentalArray);
+
+        },
+        error => {
+
+          console.error(
+            'Gagal membaca rentals:',
+            error
+          );
+
+        }
+      );
+
+
+      // ------------------------------------------
+      // Cleanup
+      // ------------------------------------------
+
+      return () => {
+
+        bikesRef.off();
+        rentalsRef.off();
+
+      };
+
+    }, []);
+
+
+    // ==========================================
+    // DARK MODE
+    // ==========================================
+
+    useEffect(() => {
+
+      document.documentElement.classList.toggle(
+        'dark',
+        dark
+      );
+
+      try {
+
+        localStorage.setItem(
+          'voltride-theme',
+          dark ? 'dark' : 'light'
+        );
+
+      } catch {}
+
+    }, [dark]);
+
+
+    // ==========================================
+    // HARGA
+    // ==========================================
+
+    const totalText =
+      useMemo(
+        () =>
+          `Rp ${selected.harga.toLocaleString('id-ID')} / ${selected.durasi}`,
+        [selected]
+      );
+
+
+    // ==========================================
+    // CARI RFID DI FIREBASE
+    // ==========================================
+
+    const findRfid =
+      async code => {
+
+        if (!firebaseDb) {
+
+          throw new Error(
+            'Firebase belum terhubung.'
+          );
+
+        }
+
+
+        const snapshot =
+          await firebaseDb
+            .ref('rfid')
+            .once('value');
+
+
+        const data =
+          snapshot.val();
+
+
+        if (!data) {
+
+          return null;
+
+        }
+
+
+        const uid =
+          code
+            .trim()
+            .toUpperCase();
+
+
+        for (
+          const [rfidId, rfid] of
+          Object.entries(data)
+        ) {
+
+          const kartuUid =
+            String(
+              rfid.kartu_uid || ''
+            ).toUpperCase();
+
+          const gantunganUid =
+            String(
+              rfid.gantungan_uid || ''
+            ).toUpperCase();
+
+
+          if (
+            uid === kartuUid ||
+            uid === gantunganUid
+          ) {
+
+            return {
+
+              rfidId: rfidId,
+
+              bikeId:
+                rfid.bike_id
+
+            };
+
+          }
+
+        }
+
+
+        return null;
+
+      };
+
+
+    // ==========================================
+    // VERIFIKASI RFID
+    // ==========================================
+
+    const submitRfid =
+      async () => {
+
+        const code =
+          rfidCode
+            .trim()
+            .toUpperCase();
+
+
+        if (!code) {
+
+          setRfidStatus(
+            '❌ UID RFID belum diisi.'
+          );
+
+          return;
+
+        }
+
+
+        try {
+
+          setRfidStatus(
+            '⏳ MEMERIKSA RFID DI FIREBASE...'
+          );
+
+
+          // --------------------------------------
+          // Cari RFID
+          // --------------------------------------
+
+          const rfid =
+            await findRfid(code);
+
+
+          if (!rfid) {
+
+            setRfidStatus(
+              '❌ RFID TIDAK TERDAFTAR — Kartu tidak dikenali.'
+            );
+
+            return;
+
+          }
+
+
+          console.log(
+            'RFID ditemukan:',
+            rfid
+          );
+
+
+          // --------------------------------------
+          // Pastikan sepeda yang dipilih
+          // sesuai RFID
+          // --------------------------------------
+
+          if (
+            selected.id !== rfid.bikeId
+          ) {
+
+            setRfidStatus(
+              `❌ RFID ini milik ${rfid.bikeId}, sedangkan yang dipilih adalah ${selected.kode}.`
+            );
+
+            return;
+
+          }
+
+
+          // --------------------------------------
+          // Cek status sepeda
+          // --------------------------------------
+
+          const statusSnapshot =
+            await firebaseDb
+              .ref(
+                `bikes/${rfid.bikeId}/status`
+              )
+              .once('value');
+
+
+          const status =
+            statusSnapshot.val();
+
+
+          if (status !== 'TERSEDIA') {
+
+            setRfidStatus(
+              `❌ ${rfid.bikeId} tidak tersedia. Status: ${status || 'TIDAK DIKETAHUI'}`
+            );
+
+            return;
+
+          }
+
+
+          // --------------------------------------
+          // Buat rental
+          // --------------------------------------
+
+          const startedAt =
+            Date.now();
+
+
+          const rentalId =
+            `RENT-${startedAt}`;
+
+
+          const rental = {
+
+            userId:
+              `USR-${startedAt}`,
+
+            nama:
+              renter.nama,
+
+            telepon:
+              renter.telepon,
+
+            bikeId:
+              rfid.bikeId,
+
+            bikeCode:
+              rfid.bikeId,
+
+            bikeName:
+              selected.nama,
+
+            durasi:
+              selected.durasi,
+
+            harga:
+              selected.harga,
+
+            rfidId:
+              rfid.rfidId,
+
+            rfidUid:
+              code,
+
+            startedAt:
+              startedAt,
+
+            endsAt:
+              startedAt +
+              selected.menit * 60000,
+
+            status:
+              'active'
+
+          };
+
+
+          // --------------------------------------
+          // Simpan rental
+          // --------------------------------------
+
+          await firebaseDb
+            .ref(
+              `rentals/${rentalId}`
+            )
+            .set(rental);
+
+
+          // --------------------------------------
+          // Update status sepeda
+          // --------------------------------------
+
+          await firebaseDb
+            .ref(
+              `bikes/${rfid.bikeId}/status`
+            )
+            .set('DIPAKAI');
+
+
+          setRfidStatus(
+            `✅ RFID TERVERIFIKASI — ${rfid.rfidId} → ${rfid.bikeId}`
+          );
+
+
+          setRfidCode('');
+
+          setRfidOpen(false);
+
+          setStage('active');
+
+
+        } catch (error) {
+
+          console.error(
+            'Verifikasi RFID gagal:',
+            error
+          );
+
+          setRfidStatus(
+            '❌ Terjadi kesalahan saat menghubungkan ke Firebase.'
+          );
+
+        }
+
+      };
+
+
+    // ==========================================
+    // KEMBALIKAN SEPEDA
+    // ==========================================
+
+    const returnBike =
+      async rental => {
+
+        try {
+
+          // --------------------------------------
+          // Update rental
+          // --------------------------------------
+
+          await firebaseDb
+            .ref(
+              `rentals/${rental.id}`
+            )
+            .update({
+
+              status:
+                'completed',
+
+              returnedAt:
+                Date.now()
+
+            });
+
+
+          // --------------------------------------
+          // Kembalikan status sepeda
+          // --------------------------------------
+
+          await firebaseDb
+            .ref(
+              `bikes/${rental.bikeId}/status`
+            )
+            .set('TERSEDIA');
+
+
+          setStage('returned');
+
+
+        } catch (error) {
+
+          console.error(
+            'Gagal mengembalikan sepeda:',
+            error
+          );
+
+          alert(
+            'Gagal memperbarui data Firebase.'
+          );
+
+        }
+
+      };
+
+
+    // ==========================================
+    // RENTAL AKTIF
+    // ==========================================
+
+    const activeRental =
+      rentals.find(
+        rental =>
+          rental.status === 'active'
+      );
+
+
+    const remaining =
+      activeRental
+        ? Math.max(
+            0,
+            activeRental.endsAt - now
+          )
+        : 0;
+
+
+    const formatTime =
+      value =>
+        `${String(
+          Math.floor(value / 60000)
+        ).padStart(2, '0')}:${String(
+          Math.floor(
+            (value % 60000) / 1000
+          )
+        ).padStart(2, '0')}`;
+
+
+    // ==========================================
+    // RENDER
+    // ==========================================
+
+    return (
+
+      <>
+
+        {/* ================================
+            NAVBAR
+        ================================= */}
+
+        <nav className="nav">
+
+          <div className="container">
+
+            <div className="brand">
+
+              <div className="brand-mark">
+                V
+              </div>
+
+              Volt
+              <span>Ride</span>
+
+              {firebaseReady && (
+
+                <small
+                  style={{
+                    fontSize: '10px',
+                    color: 'var(--brand)'
+                  }}
+                >
+                  ● ONLINE
+                </small>
+
+              )}
+
+            </div>
+
+
+            <div className="links">
+
+              <a href="#home">
+                Home
+              </a>
+
+              <a href="#sepeda">
+                Jenis Sepeda
+              </a>
+
+              <a href="#harga">
+                Harga
+              </a>
+
+              <a href="#penyewaan">
+                Penyewaan
+              </a>
+
+              <a href="#kontak">
+                Kontak
+              </a>
+
+
+              <button
+                className="btn btn-soft"
+                onClick={() => {
+
+                  setRfidStatus(
+                    '🔒 MENUNGGU RFID — Masukkan UID RFID untuk memulai peminjaman.'
+                  );
+
+                  setRfidOpen(true);
+
+                }}
+              >
+                Tap RFID
+              </button>
+
+
+              <button
+                className="theme-btn"
+                onClick={() =>
+                  setDark(v => !v)
+                }
+                title="Ganti mode"
+                aria-label="Ganti mode warna"
+              >
+
+                {dark ? (
+
+                  <svg
+                    className="theme-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="4"
+                    />
+                    <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                  </svg>
+
+                ) : (
+
+                  <svg
+                    className="theme-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.6 6.6 0 0 0 21 12.8z"/>
+                  </svg>
+
+                )}
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </nav>
+
+
+        {/* ================================
+            HERO
+        ================================= */}
+
+        <header
+          id="home"
+          className="hero"
+        >
+
+          <div className="hero-content container">
+
+            <div className="eyebrow">
+              Peminjaman sepeda listrik RFID
+            </div>
+
+            <h1>
+              Pilih <span>sepeda</span> sebelum dipinjam
+            </h1>
+
+            <p>
+              Pilih unit yang sesuai, lalu
+              masukkan UID RFID untuk memulai
+              perjalanan.
+            </p>
+
+            <div className="actions">
+
+              <a href="#sepeda">
+                <button className="btn btn-primary">
+                  Pilih Sepeda
+                </button>
+              </a>
+
+              <a href="#harga">
+                <button className="btn btn-soft">
+                  Lihat Harga
+                </button>
+              </a>
+
+            </div>
+
+          </div>
+
+        </header>
+
+
+        {/* ================================
+            SELECTED BIKE
+        ================================= */}
+
+        <section className="container intro">
+
+          <div
+            className="bike-preview"
+            aria-label="Sepeda yang akan dipinjam"
+          >
+
+            <svg
+              className="bike-icon"
+              style={{
+                width: '150px',
+                height: '150px',
+                color: 'var(--brand-dark)'
+              }}
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+
+              <circle
+                cx="5.5"
+                cy="17.5"
+                r="3.2"
+              />
+
+              <circle
+                cx="18.5"
+                cy="17.5"
+                r="3.2"
+              />
+
+              <path d="M5.5 17.5 9 9h4l2.5 8.5m-6-8.5L12 6m-3 3 3 4h5.5"/>
+
+              <path d="M12 6h2.5M14.5 6l1.5 2"/>
+
+            </svg>
+
+          </div>
+
+
+          <div>
+
+            <h2 className="section-title">
+              Sepeda yang akan dipinjam
+            </h2>
+
+            <p className="section-copy">
+              Pilih unit yang ingin digunakan
+              untuk perjalanan.
+            </p>
+
+            <div className="selected-box">
+
+              <b>
+                {selected.nama}
+              </b>
+
+              <div>
+                ID Unit: {selected.kode}
+              </div>
+
+              <div>
+                Durasi: {selected.durasi}
+              </div>
+
+              <div>
+                Harga: {totalText}
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* ================================
+            BIKES
+        ================================= */}
+
+        <section
+          id="sepeda"
+          className="container"
+        >
+
+          <h2 className="section-title">
+            Pilih Unit Sepeda
+          </h2>
+
+          <p className="section-copy">
+            Pilih unit sesuai kebutuhan perjalanan.
+          </p>
+
+
+          <div className="cards">
+
+            {bikes.map(bike => (
+
+              <button
+                key={bike.id}
+                disabled={
+                  bike.status !== 'available'
+                }
+                className={
+                  `card ${
+                    selected.id === bike.id
+                      ? 'active'
+                      : ''
+                  }`
+                }
+                onClick={() =>
+                  setSelected(bike)
+                }
+              >
+
+                <div className="icon">
+
+                  <svg
+                    className="bike-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+
+                    <circle
+                      cx="5.5"
+                      cy="17.5"
+                      r="3.2"
+                    />
+
+                    <circle
+                      cx="18.5"
+                      cy="17.5"
+                      r="3.2"
+                    />
+
+                    <path d="M5.5 17.5 9 9h4l2.5 8.5m-6-8.5L12 6m-3 3 3 4h5.5"/>
+
+                    <path d="M12 6h2.5M14.5 6l1.5 2"/>
+
+                  </svg>
+
+                </div>
+
+
+                <div
+                  className={
+                    `status-badge ${
+                      statusInfo[
+                        bike.status
+                      ][2]
+                    }`
+                  }
+                >
+
+                  {
+                    statusInfo[
+                      bike.status
+                    ][0]
+                  }
+
+                  {' '}
+
+                  {
+                    statusInfo[
+                      bike.status
+                    ][1]
+                  }
+
+                </div>
+
+
+                <p>
+                  {bike.cocok}
+                </p>
+
+
+                <div className="meta">
+
+                  <div className="meta-row">
+
+                    <span>
+                      ID Unit
+                    </span>
+
+                    <strong>
+                      {bike.kode}
+                    </strong>
+
+                  </div>
+
+
+                  <div className="meta-row">
+
+                    <span>
+                      Nama
+                    </span>
+
+                    <strong>
+                      {bike.nama}
+                    </strong>
+
+                  </div>
+
+
+                  <div className="meta-row">
+
+                    <span>
+                      Durasi
+                    </span>
+
+                    <strong>
+                      {bike.durasi}
+                    </strong>
+
+                  </div>
+
+
+                  <div className="meta-row">
+
+                    <span>
+                      Harga
+                    </span>
+
+                    <strong>
+                      Rp {bike.harga.toLocaleString('id-ID')}
+                    </strong>
+
+                  </div>
+
+                </div>
+
+              </button>
+
+            ))}
+
+          </div>
+
+        </section>
+
+
+        {/* ================================
+            PRICE
+        ================================= */}
+
+        <div
+          id="harga"
+          className="price-band"
+        >
+
+          <div className="container">
+
+            <div>
+
+              <h2>
+                Harga aktif: {totalText}
+              </h2>
+
+              <p>
+                {selected.nama} dipilih sebagai
+                sepeda yang akan dipinjam.
+              </p>
+
+            </div>
+
+
+            <button
+              className="btn"
+              onClick={() => {
+
+                setRfidStatus(
+                  '🔒 MENUNGGU RFID — Masukkan UID RFID untuk memulai peminjaman.'
+                );
+
+                setRfidOpen(true);
+
+              }}
+            >
+              Tap RFID untuk mulai
+            </button>
+
+          </div>
+
+        </div>
+
+
+        {/* ================================
+            DATA PENYEWA
+        ================================= */}
+
+        <section className="container">
+
+          <div className="form-card">
+
+            <h2 className="section-title">
+              Data Penyewa
+            </h2>
+
+
+            <div className="form-grid">
+
+              <label>
+
+                Nama
+
+                <input
+                  value={renter.nama}
+                  onChange={e =>
+                    setRenter({
+                      ...renter,
+                      nama: e.target.value
+                    })
+                  }
+                  placeholder="Nama lengkap"
+                />
+
+              </label>
+
+
+              <label>
+
+                No. HP
+
+                <input
+                  value={renter.telepon}
+                  onChange={e =>
+                    setRenter({
+                      ...renter,
+                      telepon: e.target.value
+                    })
+                  }
+                  placeholder="08xxxxxxxxxx"
+                  inputMode="tel"
+                />
+
+              </label>
+
+            </div>
+
+
+            <button
+              className="btn btn-primary"
+              style={{ marginTop: 18 }}
+              onClick={() => {
+
+                if (
+                  renter.nama.trim() &&
+                  /^08\d{8,13}$/.test(
+                    renter.telepon.trim()
+                  )
+                ) {
+
+                  setStage('confirm');
+
+                } else {
+
+                  alert(
+                    'Isi nama dan nomor HP yang valid.'
+                  );
+
+                }
+
+              }}
+            >
+              Lanjutkan
+            </button>
+
+          </div>
+
+
+          {/* ================================
+              CONFIRMATION
+          ================================= */}
+
+          {stage === 'confirm' && (
+
+            <div className="summary-card">
+
+              <h2 className="section-title">
+                Konfirmasi Peminjaman
+              </h2>
+
+
+              <div className="summary-grid">
+
+                <div>
+                  Penyewa
+
+                  <strong>
+                    {renter.nama}
+                  </strong>
+                </div>
+
+
+                <div>
+                  Sepeda
+
+                  <strong>
+                    {selected.nama}
+                    {' '}
+                    ({selected.kode})
+                  </strong>
+                </div>
+
+
+                <div>
+                  Durasi
+
+                  <strong>
+                    {selected.durasi}
+                  </strong>
+                </div>
+
+
+                <div>
+                  Harga
+
+                  <strong>
+                    Rp {selected.harga.toLocaleString('id-ID')}
+                  </strong>
+                </div>
+
+              </div>
+
+
+              <button
+                className="btn btn-soft"
+                onClick={() => {
+
+                  setRfidStatus(
+                    '🔒 MENUNGGU RFID — Masukkan UID RFID untuk memulai peminjaman.'
+                  );
+
+                  setRfidOpen(true);
+
+                }}
+              >
+                Lanjutkan ke RFID
+              </button>
+
+            </div>
+
+          )}
+
+
+          {/* ================================
+              ACTIVE RENTAL
+          ================================= */}
+
+          {activeRental && (
+
+            <div className="active-card">
+
+              <h2 className="section-title">
+                Peminjaman Aktif
+              </h2>
+
+              <p>
+                {activeRental.nama}
+                {' · '}
+                {activeRental.bikeName}
+                {' '}
+                ({activeRental.bikeCode})
+              </p>
+
+
+              <div className="countdown">
+                {formatTime(remaining)}
+              </div>
+
+
+              <p>
+                Mulai:
+                {' '}
+                {new Date(
+                  activeRental.startedAt
+                ).toLocaleTimeString('id-ID')}
+
+                {' · '}
+
+                Selesai:
+                {' '}
+                {new Date(
+                  activeRental.endsAt
+                ).toLocaleTimeString('id-ID')}
+              </p>
+
+
+              <span className="status-badge status-rented">
+                🔴 SEDANG DISEWA
+              </span>
+
+              <br />
+
+
+              <button
+                className="btn btn-primary"
+                onClick={() =>
+                  returnBike(activeRental)
+                }
+              >
+                Kembalikan Sepeda
+              </button>
+
+            </div>
+
+          )}
+
+
+          {/* ================================
+              RETURNED
+          ================================= */}
+
+          {stage === 'returned' && (
+
+            <div className="selected-box">
+
+              ✅ PEMINJAMAN SELESAI —
+              Sepeda kembali berstatus
+              🟢 TERSEDIA.
+
+            </div>
+
+          )}
+
+        </section>
+
+
+        {/* ================================
+            RENTAL HISTORY
+        ================================= */}
+
+        <section
+          id="penyewaan"
+          className="container"
+        >
+
+          <h2 className="section-title">
+            Data Penyewaan
+          </h2>
+
+          <p className="section-copy">
+            Riwayat penyewaan akan muncul
+            otomatis setelah RFID berhasil
+            diverifikasi.
+          </p>
+
+
+          <div className="rental-table-wrap">
+
+            {rentals.length === 0 ? (
+
+              <div className="rental-empty">
+                Belum ada data penyewaan.
+                Silakan tap RFID untuk memulai.
+              </div>
+
+            ) : (
+
+              <table className="rental-table">
+
+                <thead>
+
+                  <tr>
+
+                    <th>ID</th>
+                    <th>Penyewa</th>
+                    <th>Sepeda</th>
+                    <th>Durasi</th>
+                    <th>Harga</th>
+                    <th>Status</th>
+                    <th>Mulai</th>
+                    <th>Selesai</th>
+
+                  </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                  {rentals.map(
+                    rental => (
+
+                      <tr key={rental.id}>
+
+                        <td>
+                          {rental.id}
+                        </td>
+
+                        <td>
+                          <strong>
+                            {rental.nama}
+                          </strong>
+                        </td>
+
+                        <td>
+                          {rental.bikeCode}
+                        </td>
+
+                        <td>
+                          {rental.durasi}
+                        </td>
+
+                        <td>
+                          <strong>
+                            Rp {Number(
+                              rental.harga || 0
+                            ).toLocaleString('id-ID')}
+                          </strong>
+                        </td>
+
+                        <td>
+                          {
+                            rental.status === 'active'
+                              ? '🟢 Aktif'
+                              : 'Selesai'
+                          }
+                        </td>
+
+                        <td>
+                          {rental.startedAt
+                            ? new Date(
+                                rental.startedAt
+                              ).toLocaleTimeString(
+                                'id-ID'
+                              )
+                            : '-'}
+                        </td>
+
+                        <td>
+                          {rental.endsAt
+                            ? new Date(
+                                rental.endsAt
+                              ).toLocaleTimeString(
+                                'id-ID'
+                              )
+                            : '-'}
+                        </td>
+
+                      </tr>
+
+                    )
+                  )}
+
+                </tbody>
+
+              </table>
+
+            )}
+
+          </div>
+
+        </section>
+
+
+        {/* ================================
+            RFID PANEL
+        ================================= */}
+
+        <section
+          className="container"
+          style={{
+            paddingTop: '28px',
+            paddingBottom: '28px'
+          }}
+        >
+
+          <div className="rfid-panel">
+
+            <div>
+
+              <h2>
+                Tap RFID untuk membuka kunci
+              </h2>
+
+              <p>
+                Pilih sepeda, lalu masukkan
+                UID RFID terdaftar untuk
+                memulai peminjaman.
+              </p>
+
+            </div>
+
+
+            <button
+              className="rfid-action"
+              onClick={() => {
+
+                setRfidStatus(
+                  '🔒 MENUNGGU RFID — Masukkan UID RFID untuk memulai peminjaman.'
+                );
+
+                setRfidOpen(true);
+
+              }}
+            >
+              ◉ Tap Kartu RFID
+            </button>
+
+          </div>
+
+        </section>
+
+
+        {/* ================================
+            CONTACT
+        ================================= */}
+
+        <section
+          id="kontak"
+          className="container"
+        >
+
+          <h2 className="section-title">
+            Contact Us
+          </h2>
+
+          <p className="section-copy">
+            Informasi lokasi peminjaman
+            dan layanan bantuan.
+          </p>
+
+
+          <div className="contact-grid">
+
+            <div className="contact-card">
+
+              <b>
+                Alamat
+              </b>
+
+              <br />
+
+              Stasiun Sepeda Kampus
+
+            </div>
+
+
+            <div className="contact-card">
+
+              <b>
+                Jam Operasional
+              </b>
+
+              <br />
+
+              07.00 - 21.00 WIB
+
+            </div>
+
+
+            <div className="contact-card">
+
+              <b>
+                Email
+              </b>
+
+              <br />
+
+              contact@voltride.local
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* ================================
+            RFID MODAL
+        ================================= */}
+
+        {rfidOpen && (
+
+          <div
+            className="rfid-modal"
+            onClick={e => {
+
+              if (
+                e.target === e.currentTarget
+              ) {
+
+                setRfidOpen(false);
+
+              }
+
+            }}
+          >
+
+            <div className="rfid-box">
+
+              <h3>
+                Tap Kartu RFID
+              </h3>
+
+
+              <p>
+
+                Sepeda terpilih:
+                {' '}
+
+                <strong>
+                  {selected.nama}
+                </strong>
+
+                <br />
+
+                Masukkan UID RFID untuk
+                simulasi tap.
+
+              </p>
+
+
+              <input
+                className="rfid-input"
+                autoFocus
+                value={rfidCode}
+                onChange={e =>
+                  setRfidCode(
+                    e.target.value
+                  )
+                }
+                onKeyDown={e => {
+
+                  if (
+                    e.key === 'Enter'
+                  ) {
+
+                    submitRfid();
+
+                  }
+
+                }}
+                placeholder="Contoh: BE:69:0F:06"
+              />
+
+
+              <div className="modal-actions">
+
+                <button
+                  className="btn"
+                  onClick={() =>
+                    setRfidOpen(false)
+                  }
+                >
+                  Batal
+                </button>
+
+
+                <button
+                  className="btn btn-primary"
+                  onClick={submitRfid}
+                >
+                  Verifikasi RFID
+                </button>
+
+              </div>
+
+
+              <div className="rfid-status">
+                {rfidStatus}
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
+
+
+        {/* ================================
+            FOOTER
+        ================================= */}
+
+        <footer className="footer">
+
+          © VoltRide —
+          Sistem Peminjaman Sepeda Listrik RFID
+
+        </footer>
+
+      </>
+
+    );
+
+  }
+
+
+  // ==========================================
+  // START REACT
+  // ==========================================
+
+  ReactDOM
+    .createRoot(
+      document.getElementById('root')
+    )
+    .render(
+      <App />
+    );
+
+</script>
+
 </body>
 </html>
